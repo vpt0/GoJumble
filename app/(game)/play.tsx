@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, Pressable, Animated, Alert } from 'react-native
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useState, useRef, useEffect } from 'react';
-import { Cloud, ArrowLeft, SkipForward } from 'lucide-react-native';
+import { Cloud, ArrowLeft, SkipForward, RotateCcw } from 'lucide-react-native';
 import { useWords } from '../../hooks/useWords';
 
 export default function GamePlay() {
@@ -88,6 +88,14 @@ export default function GamePlay() {
     }
   };
 
+  const handleUndoLetter = () => {
+    if (selectedLetters.length > 0 && selectedIndices.length > 0) {
+      setSelectedLetters(prev => prev.slice(0, -1));
+      setSelectedIndices(prev => prev.slice(0, -1));
+      setAnswerStatus(null); // Reset any previous answer status
+    }
+  };
+
   const handleCorrectGuess = () => {
     setAnswerStatus('correct');
     const timeBonus = Math.round(progressAnim._value * 100);
@@ -102,7 +110,9 @@ export default function GamePlay() {
   const handleIncorrectGuess = () => {
     setAnswerStatus('incorrect');
     setTimeout(() => {
-      handleNextWord();
+      setSelectedLetters([]);
+      setSelectedIndices([]);
+      setAnswerStatus(null);
     }, 1000);
   };
 
@@ -123,27 +133,8 @@ export default function GamePlay() {
             handleNextWord();
           },
         },
-      ]
-    );
-  };
-
-  const showGameComplete = () => {
-    setGameComplete(true);
-    Alert.alert(
-      '🎉 Game Complete! 🎉',
-      `Congratulations!\n\nYour Final Score: ${score} points\n\nWould you like to play again?`,
-      [
-        {
-          text: 'Play Again',
-          onPress: () => router.replace('/(game)/theme-select'),
-        },
-        {
-          text: 'Back to Menu',
-          onPress: () => router.replace('/(tabs)'),
-          style: 'cancel',
-        },
       ],
-      { cancelable: false }
+      { cancelable: true }
     );
   };
 
@@ -151,7 +142,11 @@ export default function GamePlay() {
     if (currentWordIndex < words.length - 1) {
       setCurrentWordIndex(prev => prev + 1);
     } else {
-      showGameComplete();
+      setGameComplete(true);
+      router.push({
+        pathname: '/(tabs)',
+        params: { score, words: words.length }
+      });
     }
   };
 
@@ -172,7 +167,7 @@ export default function GamePlay() {
         {
           text: 'Quit Game',
           style: 'destructive',
-          onPress: () => router.back(),
+          onPress: () => router.replace('/(tabs)'),
         },
       ],
       { cancelable: true }
@@ -270,6 +265,15 @@ export default function GamePlay() {
           >
             <Cloud color="#F2F2F7" size={24} />
             <Text style={styles.actionButtonText}>Hint (-50)</Text>
+          </Pressable>
+
+          <Pressable 
+            style={[styles.actionButton, styles.undoButton]} 
+            onPress={handleUndoLetter}
+            disabled={selectedLetters.length === 0}
+          >
+            <RotateCcw color="#F2F2F7" size={24} />
+            <Text style={styles.actionButtonText}>Undo</Text>
           </Pressable>
 
           <Pressable 
@@ -421,6 +425,9 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     backgroundColor: '#5D9CEC',
+  },
+  undoButton: {
+    backgroundColor: '#FF9F43',
   },
   actionButtonText: {
     fontFamily: 'Manrope-Bold',
